@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unnati Motors Open RO Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        h1 { color: #333; font-size: 28px; margin: 0; }
+        #companyLogo { height: 50px; object-fit: contain; max-width: 200px; }
+
+        .header-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .tabs { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+        .tab-button {
+            padding: 10px 16px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            flex: 1;
+            min-width: 100px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .tab-button.active { background: #667eea; color: white; }
+        .tab-button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); }
+
+        .controls-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .clear-all-btn {
+            padding: 10px 16px;
+            border: none;
+            background: #e74c3c;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.2s ease;
+            white-space: nowrap;
+        }
+        .clear-all-btn:hover { background: #c0392b; }
+
+        .theme-toggle-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 45px;
+            height: 45px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 15px; gap: 10px; margin-bottom: 15px; }
+            h1 { font-size: 22px; }
+            .header-wrapper { flex-direction: column; align-items: stretch; }
+            .tabs { gap: 6px; }
+            .tab-button { padding: 8px 12px; font-size: 12px; min-width: 80px; }
+            .clear-all-btn { padding: 8px 12px; font-size: 12px; width: 100%; }
+            .controls-right { width: 100%; gap: 8px; }
+            .theme-toggle-btn { width: 100%; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); }
+        .stat-label { color: #999; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #667eea; transition: all 0.3s ease; }
+
+        .stat-card.landed-cost-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stat-card.landed-cost-card .stat-label { color: rgba(255, 255, 255, 0.8); }
+        .stat-card.landed-cost-card .stat-value { color: #ffffff; font-size: 22px; }
+
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 15px; }
+            .stat-card { padding: 12px; }
+            .stat-label { font-size: 10px; margin-bottom: 6px; }
+            .stat-value { font-size: 20px; }
+        }
+
+        .filters-section {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .filter-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        input[type="text"]::placeholder { color: #999; }
+
+        @media (max-width: 768px) {
+            .filters-section { padding: 12px; margin-bottom: 12px; }
+            .filters-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .filter-group label { font-size: 11px; margin-bottom: 5px; }
+            select, input[type="text"] { padding: 6px; font-size: 12px; }
+        }
+
+        .table-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .table-wrapper {
+            overflow-x: scroll !important;
+            overflow-y: auto;
+            max-height: 550px;
+            border-radius: 0 0 10px 10px;
+            display: block;
+            scroll-behavior: smooth;
+            padding-bottom: 5px;
+        }
+        .table-wrapper::-webkit-scrollbar { width: 15px; height: 15px; }
+        .table-wrapper::-webkit-scrollbar-track { background: #e8e8e8; border-radius: 10px; margin: 0 5px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: #666; border-radius: 10px; min-height: 40px; }
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background: #333; }
+
+        .table-header {
+            padding: 12px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .table-info { font-size: 12px; color: #666; }
+
+        .export-btn {
+            background: #27ae60;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+            transition: background 0.2s ease;
+        }
+        .export-btn:hover { background: #229954; }
+        .export-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
+
+        .records-select { width: 110px; padding: 6px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; }
+
+        @media (max-width: 768px) {
+            .table-header { padding: 10px; gap: 8px; flex-direction: column; align-items: stretch; }
+            .table-info { font-size: 11px; }
+            .export-btn { padding: 6px 12px; font-size: 10px; width: 100%; }
+            .records-select { width: 100%; padding: 6px; font-size: 11px; }
+        }
+
+        table { width: 100%; border-collapse: collapse; min-width: 2600px; table-layout: fixed; }
+        thead { background: #f8f9fa; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10; }
+        th {
+            padding: 12px 8px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: help;
+            position: relative;
+            user-select: none;
+        }
+        th:hover { background: #e9ecef; }
+        td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            color: #555;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            vertical-align: top;
+        }
+
+        .landed-cost-cell { background: #f0f7ff; color: #1967d2; font-weight: 600; }
+        .vehicle-ready-date-cell { background: #fff3e0; color: #f57c00; font-weight: 600; }
+        .tat-current-cell { background: #e8f5e9; color: #2e7d32; font-weight: 600; }
+
+        tr:hover { background: #f9f9f9; }
+        tbody tr { height: auto; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-open { background: #fef3e2; color: #e67e22; }
+        .badge-closed { background: #e8f5e9; color: #27ae60; }
+
+        .error { background: #fee; color: #c33; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+
+        .mjob-badge { display: inline-block; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; background: #e8f0fe; color: #1967d2; }
+        .segment-badge { display: inline-block; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; background: #f3e5f5; color: #7b1fa2; }
+
+        .tat-alert { background: #c0392b; color: white; font-weight: bold; padding: 8px 12px; border-radius: 5px; }
+        .tat-normal { background: #27ae60; color: white; font-weight: bold; padding: 8px 12px; border-radius: 5px; }
+        .branch-abbr { font-weight: bold; background: #e3f2fd; padding: 2px 6px; border-radius: 3px; }
+
+        .loading { text-align: center; padding: 40px; color: #667eea; }
+        .stat-updating { animation: pulse 0.5s ease-in-out; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* Sort indicators */
+        .sort-indicator { font-size: 11px; margin-left: 6px; opacity: 0.9; }
+        .sortable { cursor: pointer; }
+        .sortable:hover { background: #e9ecef; }
+
+        /* ==================== MODAL STYLES ==================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-overlay.show { display: flex; justify-content: center; align-items: center; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .modal-header {
+            padding: 18px 20px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            gap: 10px;
+        }
+        .modal-header h2 { margin: 0; font-size: 18px; font-weight: 700; }
+        .modal-close {
+            background: rgba(255,255,255,0.18);
+            border: none;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background 0.2s ease;
+            font-weight: 700;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.28); }
+
+        .modal-body { padding: 18px 20px; }
+        .modal-body h3 {
+            font-size: 13px;
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 12px;
+            text-align: center;
+            padding: 10px;
+            background: #f0f7ff;
+            border-radius: 8px;
+        }
+
+        .division-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #fafafa;
+            transition: all 0.2s ease;
+        }
+        .division-item:hover { background: #f0f7ff; border-color: #667eea; transform: translateX(5px); }
+        .division-name { font-weight: 600; color: #333; font-size: 13px; }
+        .division-count { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .count-label { font-size: 10px; font-weight: 600; color: #666; text-transform: uppercase; margin-bottom: 4px; }
+        .count-value { font-weight: 700; font-size: 16px; padding: 6px 12px; border-radius: 20px; min-width: 60px; text-align: center; }
+        .count-open { background: #fef3e2; color: #e67e22; }
+        .count-closed { background: #e8f5e9; color: #27ae60; }
+
+        .modal-footer {
+            display: none;
+            padding: 16px 20px;
+            border-top: 2px solid #e0e0e0;
+            background: #f9f9f9;
+            border-radius: 0 0 15px 15px;
+        }
+        .footer-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .footer-stat { text-align: center; }
+        .footer-stat-label { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; margin-bottom: 6px; display: block; }
+        .footer-stat-value { font-size: 26px; font-weight: 800; color: #333; display: block; }
+        .footer-stat.open .footer-stat-value { color: #e67e22; }
+        .footer-stat.closed .footer-stat-value { color: #27ae60; }
+
+        .empty-state { text-align: center; padding: 22px 10px; color: #777; font-size: 13px; }
+
+        .modal-loading { display: flex; justify-content: center; align-items: center; padding: 24px 10px; }
+        .spinner { width: 22px; height: 22px; border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .modal::-webkit-scrollbar { width: 8px; }
+        .modal::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .modal::-webkit-scrollbar-thumb { background: #667eea; border-radius: 10px; }
+        .modal::-webkit-scrollbar-thumb:hover { background: #764ba2; }
+
+        @media (max-width: 768px) {
+            .modal { width: 95%; max-height: 90vh; }
+            .modal-header h2 { font-size: 16px; }
+            .modal-body { padding: 16px; }
+            .division-item { grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; padding: 10px; margin-bottom: 10px; }
+            .division-name { font-size: 12px; }
+            .count-value { font-size: 15px; padding: 4px 10px; }
+            .footer-stat-value { font-size: 22px; }
+        }
+
+        /* ==================== DARK MODE STYLES ==================== */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+        }
+        body.dark-mode header {
+            background: #2d3561;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        body.dark-mode h1 { color: #e0e0e0; }
+        body.dark-mode .stat-card {
+            background: #2d3561;
+            color: #e0e0e0;
+        }
+        body.dark-mode .stat-value { color: #667eea; }
+        body.dark-mode .stat-label { color: #a0a0a0; }
+        body.dark-mode .stat-card.landed-cost-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        body.dark-mode .filters-section {
+            background: #2d3561;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        body.dark-mode .filter-group label { color: #e0e0e0; }
+        body.dark-mode select,
+        body.dark-mode input[type="text"] {
+            background: #3a4575;
+            color: #e0e0e0;
+            border-color: #4a5585;
+        }
+        body.dark-mode input[type="text"]::placeholder { color: #7a7a8a; }
+        body.dark-mode .table-section {
+            background: #2d3561;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        body.dark-mode .table-wrapper {
+            background: #2d3561;
+        }
+        body.dark-mode .table-header {
+            background: #3a4575;
+            border-bottom-color: #4a5585;
+        }
+        body.dark-mode .table-info { color: #a0a0a0; }
+        body.dark-mode table {
+            background: #2d3561;
+            color: #e0e0e0;
+        }
+        body.dark-mode thead {
+            background: #3a4575;
+            border-bottom-color: #4a5585;
+        }
+        body.dark-mode th { color: #e0e0e0; }
+        body.dark-mode th:hover { background: #4a5585; }
+        body.dark-mode td { border-bottom-color: #3a4575; color: #d0d0d0; }
+        body.dark-mode tr:hover { background: #3a4575; }
+        body.dark-mode .records-select {
+            background: #3a4575;
+            color: #e0e0e0;
+            border-color: #4a5585;
+        }
+        body.dark-mode .export-btn { background: #27ae60; }
+        body.dark-mode .export-btn:hover { background: #229954; }
+        body.dark-mode .modal {
+            background: #2d3561;
+            color: #e0e0e0;
+        }
+        body.dark-mode .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-bottom-color: #667eea;
+        }
+        body.dark-mode .modal-body {
+            background: #2d3561;
+        }
+        body.dark-mode .modal-body h3 {
+            color: #e0e0e0;
+            background: rgba(102, 126, 234, 0.2);
+        }
+        body.dark-mode .modal-footer {
+            background: #3a4575;
+            border-top-color: #4a5585;
+        }
+        body.dark-mode .division-item {
+            background: #3a4575;
+            border-color: #4a5585;
+        }
+        body.dark-mode .division-item:hover {
+            background: #445588;
+            border-color: #667eea;
+        }
+        body.dark-mode .division-name { color: #e0e0e0; }
+        body.dark-mode .count-label { color: #a0a0a0; }
+        body.dark-mode .landed-cost-cell {
+            background: rgba(102, 126, 234, 0.2);
+            color: #9ec4ff;
+        }
+        body.dark-mode .vehicle-ready-date-cell {
+            background: rgba(245, 124, 0, 0.2);
+            color: #ffb347;
+        }
+        body.dark-mode .tat-current-cell {
+            background: rgba(46, 125, 50, 0.2);
+            color: #66bb6a;
+        }
+        body.dark-mode .badge {
+            background: #3a4575;
+        }
+        body.dark-mode .badge-open { background: rgba(230, 126, 34, 0.3); color: #ffb347; }
+        body.dark-mode .badge-closed { background: rgba(46, 125, 50, 0.3); color: #66bb6a; }
+        body.dark-mode .mjob-badge {
+            background: rgba(102, 126, 234, 0.3);
+            color: #9ec4ff;
+        }
+        body.dark-mode .segment-badge {
+            background: rgba(123, 31, 162, 0.3);
+            color: #ba68c8;
+        }
+        body.dark-mode .branch-abbr {
+            background: rgba(102, 126, 234, 0.3);
+            color: #9ec4ff;
+        }
+        body.dark-mode .error {
+            background: rgba(195, 51, 51, 0.2);
+            color: #ff8888;
+        }
+        body.dark-mode .loading { color: #667eea; }
+        body.dark-mode .modal::-webkit-scrollbar-track { background: #3a4575; }
+        body.dark-mode .modal::-webkit-scrollbar-thumb { background: #667eea; }
+        body.dark-mode .table-wrapper::-webkit-scrollbar-track { background: #3a4575; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <img id="companyLogo" src="./logo.jpg" alt="Company Logo"
+                         style="height: 60px; object-fit: contain; display: none;"
+                         onerror="this.style.display='none';">
+                    <h1>Unnati Motors Open RO Dashboard</h1>
+                </div>
+                <button class="theme-toggle-btn" id="themeToggle" title="Toggle Dark Mode" onclick="toggleTheme()">🌙</button>
+            </div>
+            <div class="header-wrapper">
+                <div class="tabs">
+                    <button class="tab-button active" onclick="switchTab(event, 'mechanical')">Mechanical</button>
+                    <button class="tab-button" onclick="switchTab(event, 'bodyshop')">Bodyshop</button>
+                    <button class="tab-button" onclick="switchTab(event, 'accessories')">Accessories</button>
+                    <button class="tab-button" onclick="switchTab(event, 'presale')">Pre-Sale/PDI</button>
+                </div>
+                <div class="controls-right">
+                    <button class="clear-all-btn" onclick="clearAllFilters()">Clear All</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total ROs</div>
+                <div class="stat-value" id="total">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Mechanical</div>
+                <div class="stat-value" id="mech">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Bodyshop</div>
+                <div class="stat-value" id="body">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Accessories</div>
+                <div class="stat-value" id="acc">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pre-Sale/PDI</div>
+                <div class="stat-value" id="presale">-</div>
+            </div>
+            <div class="stat-card landed-cost-card">
+                <div class="stat-label">Part Issued to RO's Value</div>
+                <div class="stat-value" id="landedCost">-</div>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Branch</label>
+                    <select id="branch" onchange="onBranchChange()">
+                        <option>All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>RO Status</label>
+                    <select id="status" onchange="onFilterChange()">
+                        <option>All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Age Bucket</label>
+                    <select id="age" onchange="onFilterChange()">
+                        <option>All</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="segmentFilter" style="display:block !important;">
+                    <label>Segment</label>
+                    <select id="segment" onchange="onSegmentChange()">
+                        <option value="All">All</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="billableTypeFilter" style="display:none;">
+                    <label>Billable Type</label>
+                    <select id="billableType" onchange="onFilterChange()">
+                        <option>All</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="serviceTypeFilter" style="display:none;">
+                    <label>Service Type</label>
+                    <select id="serviceType" onchange="onFilterChange()">
+                        <option>All</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="saNameFilter">
+                    <label>SA Name</label>
+                    <select id="saName" onchange="onFilterChange()">
+                        <option>All</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="roRemarkFilter" style="display:none;">
+                    <label>RO Remark</label>
+                    <select id="roRemark" onchange="onFilterChange()">
+                        <option value="All">All</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="mjobFilter" style="display:none;">
+                    <label>MJob Type</label>
+                    <select id="mjob" onchange="onFilterChange()">
+                        <option>All</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="regNumberFilter" style="display:none;">
+                    <label>Reg. Number (Search)</label>
+                    <input type="text" id="regNumber" placeholder="Enter registration number..." onkeyup="onFilterChange()">
+                </div>
+                <div class="filter-group" id="pendingReasonFilter" style="display:none;">
+                    <label>Pending Reason</label>
+                    <select id="pendingReason" onchange="onFilterChange()">
+                        <option value="All">All</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="table-header">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                    <div class="table-info" id="tableInfo">Loading data...</div>
+                    <select class="records-select" id="recordsPerPage" onchange="loadData()">
+                        <option value="10">10 Records</option>
+                        <option value="20">20 Records</option>
+                        <option value="50" selected>50 Records</option>
+                        <option value="500">>50 Records</option>
+                    </select>
+                </div>
+                <button class="export-btn" onclick="exportToCSV(event)">Export Filtered Data to Excel</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead id="tableHead">
+                        <tr id="headerRow">
+                            <th>RO Number</th>
+                            <th class="sortable" onclick="toggleSort('landed_cost')" title="Sort Landed Cost">Landed Cost<span class="sort-indicator" id="sort_landed_cost"></span></th>
+                            <th class="sortable" onclick="toggleSort('ro_date')" title="Sort RO Date">RO Date<span class="sort-indicator" id="sort_ro_date"></span></th>
+                            <th>Branch</th>
+                            <th>Status</th>
+                            <th>SA Name</th>
+                            <th>Vehicle No</th>
+                            <th>Model Group</th>
+                            <th>Segment</th>
+                            <th>Chassis</th>
+                            <th>MJob</th>
+                            <th>TAT</th>
+                            <th>Remarks</th>
+                            <th>Pending Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="16" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL FOR DIVISION STATS ==================== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="divisionModal">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <button class="modal-close" onclick="closeModal()">Close</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="modal-loading"><div class="spinner"></div></div>
+            </div>
+            <div class="modal-footer" id="modalFooter">
+                <div class="footer-stats">
+                    <div class="footer-stat open">
+                        <span class="footer-stat-label">Total Open ROs</span>
+                        <span class="footer-stat-value" id="footerOpenTotal"></span>
+                    </div>
+                    <div class="footer-stat closed">
+                        <span class="footer-stat-label">Total Closed But Not Billed</span>
+                        <span class="footer-stat-value" id="footerClosedTotal"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+
+        let currentTab = 'mechanical';
+        let allData = [];
+
+        // Sorting state
+        let sortState = { key: null, dir: null }; // dir: 'asc' | 'desc'
+
+        const branchAbbreviations = {
+            'KOLHAPUR_WS': 'KOL',
+            'WAGHOLI': 'WAG',
+            'NAGPUR_KAMPTHEE ROAD': 'HO',
+            'AMRAVATI': 'AMT',
+            'YAVATMAL': 'YAV',
+            'NAGPUR_WARDHAMAN NGR': 'CITY',
+            'CHIKHALI': 'CHI',
+            'CHAUFULA_SZZ': 'CHA',
+            'SHIKRAPUR_SZS': 'SHI',
+            'KOLHAPUR_SH': 'KOL'
+        };
+
+        // ==================== THEME TOGGLE ==================== 
+        function toggleTheme() {
+            const body = document.body;
+            const themeBtn = document.getElementById('themeToggle');
+            
+            body.classList.toggle('dark-mode');
+            
+            // Save theme preference
+            const isDarkMode = body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            
+            // Update button icon
+            themeBtn.textContent = isDarkMode ? '☀️' : '🌙';
+            themeBtn.title = isDarkMode ? 'Toggle Light Mode' : 'Toggle Dark Mode';
+        }
+
+        // Load saved theme on page load
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const isDarkMode = savedTheme === 'dark';
+            
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('themeToggle').textContent = '☀️';
+                document.getElementById('themeToggle').title = 'Toggle Light Mode';
+            } else {
+                document.getElementById('themeToggle').textContent = '🌙';
+                document.getElementById('themeToggle').title = 'Toggle Dark Mode';
+            }
+        }
+
+        function abbreviateBranch(branch) {
+            if (!branch) return '-';
+            return branchAbbreviations[branch] || branch.substring(0, 3).toUpperCase();
+        }
+
+        function sortAgeBuckets(ageBuckets) {
+            const ageBucketOrder = ['0-3 days', '4-10 days', '11-15 days', '16-30 days', '31-60 days', 'Above 60'];
+            let sorted = [];
+            for (let order of ageBucketOrder) {
+                for (let bucket of ageBuckets) {
+                    let bucketLower = String(bucket).toLowerCase().trim();
+                    let orderLower = String(order).toLowerCase().trim();
+                    if (bucketLower === orderLower || bucketLower.includes(orderLower)) {
+                        if (!sorted.includes(bucket)) sorted.push(bucket);
+                        break;
+                    }
+                }
+            }
+            ageBuckets.forEach(bucket => { if (!sorted.includes(bucket)) sorted.push(bucket); });
+            return sorted;
+        }
+
+        window.onload = function() {
+            initTheme();
+            loadStats();
+            loadFilters();
+            loadData();
+        };
+
+        function extractMJob(remark) {
+            if (!remark) return 'Not Categorized';
+            const matches = String(remark).match(/\bM[1-4]\b/g);
+            if (matches && matches.length > 0) return matches[0];
+            return 'Not Categorized';
+        }
+
+        function getLastEightChars(text) {
+            if (!text) return '-';
+            const str = String(text).trim();
+            return str.length > 8 ? str.slice(-8) : str;
+        }
+
+        /* ==================== DATE HELPERS (DD/MM/YYYY) ==================== */
+        function parseAnyDate(input) {
+            if (!input) return null;
+            const s = String(input).trim();
+            if (!s || s === '-') return null;
+
+            const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (iso) {
+                const y = parseInt(iso[1], 10);
+                const m = parseInt(iso[2], 10);
+                const d = parseInt(iso[3], 10);
+                const dt = new Date(y, m - 1, d);
+                return isNaN(dt.getTime()) ? null : dt;
+            }
+
+            let m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (m1) {
+                const d = parseInt(m1[1], 10);
+                const m = parseInt(m1[2], 10);
+                const y = parseInt(m1[3], 10);
+                const dt = new Date(y, m - 1, d);
+                return isNaN(dt.getTime()) ? null : dt;
+            }
+
+            let m2 = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+            if (m2) {
+                const d = parseInt(m2[1], 10);
+                const m = parseInt(m2[2], 10);
+                const y = parseInt(m2[3], 10);
+                const dt = new Date(y, m - 1, d);
+                return isNaN(dt.getTime()) ? null : dt;
+            }
+
+            const dt2 = new Date(s);
+            return isNaN(dt2.getTime()) ? null : dt2;
+        }
+
+        function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
+        function formatDateDDMMYYYY(input) {
+            const dt = parseAnyDate(input);
+            if (!dt) return '-';
+            const d = pad2(dt.getDate());
+            const m = pad2(dt.getMonth() + 1);
+            const y = dt.getFullYear();
+            return `${d}/${m}/${y}`;
+        }
+
+        function calculateTAT(dateInput) {
+            const dt = parseAnyDate(dateInput);
+            if (!dt) return 0;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            dt.setHours(0,0,0,0);
+            const diffTime = today - dt;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays < 0 ? 0 : diffDays;
+        }
+
+        function getTATStyle(mjob, tat) {
+            let isAlert = false;
+            if (mjob === 'M1' && tat > 1) isAlert = true;
+            else if (mjob === 'M2' && tat > 5) isAlert = true;
+            else if (mjob === 'M3' && tat > 9) isAlert = true;
+            else if (mjob === 'M4' && tat > 25) isAlert = true;
+            return isAlert ? 'tat-alert' : 'tat-normal';
+        }
+
+        function formatCurrency(value) {
+            if (value === undefined || value === null || value === 0) return '₹0';
+            const num = parseFloat(value);
+            if (isNaN(num)) return '₹0';
+            return '₹' + num.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+        }
+
+        function toNumber(value) {
+            const n = Number(value);
+            return isNaN(n) ? 0 : n;
+        }
+
+        function getSortIndicator(dir) {
+            if (dir === 'asc') return '▲';
+            if (dir === 'desc') return '▼';
+            return '';
+        }
+
+        function updateSortIcons() {
+            const lc = document.getElementById('sort_landed_cost');
+            const rd = document.getElementById('sort_ro_date');
+            if (lc) lc.textContent = (sortState.key === 'landed_cost') ? getSortIndicator(sortState.dir) : '';
+            if (rd) rd.textContent = (sortState.key === 'ro_date') ? getSortIndicator(sortState.dir) : '';
+        }
+
+        function toggleSort(key) {
+            if (sortState.key !== key) {
+                sortState.key = key;
+                sortState.dir = 'asc';
+            } else {
+                if (sortState.dir === 'asc') sortState.dir = 'desc';
+                else if (sortState.dir === 'desc') { sortState.dir = null; sortState.key = null; }
+                else sortState.dir = 'asc';
+            }
+            updateSortIcons();
+            loadData();
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/api/dashboard/statistics`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                document.getElementById('total').textContent = data.total_vehicles || 0;
+                document.getElementById('mech').textContent = data.mechanical_count || 0;
+                document.getElementById('body').textContent = data.bodyshop_count || 0;
+                document.getElementById('acc').textContent = data.accessories_count || 0;
+                document.getElementById('presale').textContent = data.presale_count || 0;
+                document.getElementById('landedCost').textContent = formatCurrency(data.total_landed_cost || 0);
+            } catch (error) {
+                document.getElementById('tableInfo').innerHTML = `<div class="error">Cannot connect to server: ${error.message}</div>`;
+            }
+        }
+
+        function openModal() {
+            const categoryNames = { mechanical: 'Mechanical', bodyshop: 'Bodyshop', accessories: 'Accessories', presale: 'Pre-Sale/PDI' };
+            document.getElementById('modalTitle').textContent = `${categoryNames[currentTab] || 'Category'} - Division Wise ROs`;
+            document.getElementById('modalOverlay').classList.add('show');
+
+            document.getElementById('modalFooter').style.display = 'none';
+            document.getElementById('footerOpenTotal').textContent = '';
+            document.getElementById('footerClosedTotal').textContent = '';
+            document.getElementById('modalBody').innerHTML = `<div class="modal-loading"><div class="spinner"></div></div>`;
+            loadDivisionStats();
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+        }
+
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        async function loadDivisionStats() {
+            try {
+                const response = await fetch(`${API_URL}/api/dashboard/division-stats-v2?service_category=${currentTab}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                const modalBody = document.getElementById('modalBody');
+
+                if (!data.divisions || data.divisions.length === 0) {
+                    modalBody.innerHTML = `<div class="empty-state">No ROs found for this category</div>`;
+                    document.getElementById('footerOpenTotal').textContent = '0';
+                    document.getElementById('footerClosedTotal').textContent = '0';
+                    document.getElementById('modalFooter').style.display = 'block';
+                    return;
+                }
+
+                let totalOpen = 0;
+                let totalClosedNB = 0;
+
+                let html = `<h3>Division-Wise Breakdown</h3>`;
+                data.divisions.forEach(div => {
+                    const openCnt = Number(div.open_count || 0);
+                    const closedCnt = Number(div.closed_not_billed_count || 0);
+                    totalOpen += openCnt;
+                    totalClosedNB += closedCnt;
+
+                    html += `
+                        <div class="division-item">
+                            <div class="division-name">${div.branch}</div>
+                            <div class="division-count">
+                                <div class="count-label">Open</div>
+                                <div class="count-value count-open">${openCnt}</div>
+                            </div>
+                            <div class="division-count">
+                                <div class="count-label">Closed Not Billed</div>
+                                <div class="count-value count-closed">${closedCnt}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                modalBody.innerHTML = html;
+
+                const apiOpen = (data.total_open !== undefined && data.total_open !== null) ? data.total_open : totalOpen;
+                const apiClosed = (data.total_closed_not_billed !== undefined && data.total_closed_not_billed !== null) ? data.total_closed_not_billed : totalClosedNB;
+
+                document.getElementById('footerOpenTotal').textContent = String(apiOpen);
+                document.getElementById('footerClosedTotal').textContent = String(apiClosed);
+                document.getElementById('modalFooter').style.display = 'block';
+            } catch (error) {
+                document.getElementById('modalBody').innerHTML = `<div class="empty-state">Error loading division stats: ${error.message}</div>`;
+                document.getElementById('footerOpenTotal').textContent = '0';
+                document.getElementById('footerClosedTotal').textContent = '0';
+                document.getElementById('modalFooter').style.display = 'block';
+            }
+        }
+
+        async function loadFilteredStats() {
+            try {
+                const branch = document.getElementById('branch').value;
+                const status = document.getElementById('status').value;
+                const age = document.getElementById('age').value;
+                const segment = document.getElementById('segment').value;
+                const billableType = document.getElementById('billableType') ? document.getElementById('billableType').value : 'All';
+                const serviceType = document.getElementById('serviceType') ? document.getElementById('serviceType').value : 'All';
+                const saName = document.getElementById('saName') ? document.getElementById('saName').value : 'All';
+                const roRemark = document.getElementById('roRemark') ? document.getElementById('roRemark').value : 'All';
+                const pendingReason = document.getElementById('pendingReason') ? document.getElementById('pendingReason').value : 'All';
+                const mjob = currentTab === 'bodyshop' ? document.getElementById('mjob').value : 'All';
+                const regNumber = document.getElementById('regNumber') ? document.getElementById('regNumber').value : '';
+
+                let url = `${API_URL}/api/dashboard/statistics/filtered`;
+                const params = new URLSearchParams();
+                params.append('service_category', currentTab);
+
+                if (branch !== 'All') params.append('branch', branch);
+                if (status !== 'All') params.append('ro_status', status);
+                if (age !== 'All') params.append('age_bucket', age);
+                if (segment !== 'All') params.append('segment', segment);
+                if (billableType !== 'All' && billableType !== undefined) params.append('billable_type', billableType);
+                if (serviceType !== 'All' && serviceType !== undefined) params.append('service_type', serviceType);
+                if (saName !== 'All') params.append('sa_name', saName);
+                if (roRemark !== 'All') params.append('ro_remark', roRemark);
+                if (pendingReason !== 'All') params.append('pending_reason', pendingReason);
+                if (mjob !== 'All') params.append('mjob', mjob);
+                if (regNumber && regNumber.trim() !== '') params.append('reg_number', regNumber);
+
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                const cards = document.querySelectorAll('.stat-value');
+                cards.forEach(card => card.classList.add('stat-updating'));
+
+                document.getElementById('total').textContent = data.total_vehicles || 0;
+                document.getElementById('mech').textContent = data.mechanical_count || 0;
+                document.getElementById('body').textContent = data.bodyshop_count || 0;
+                document.getElementById('acc').textContent = data.accessories_count || 0;
+                document.getElementById('presale').textContent = data.presale_count || 0;
+                document.getElementById('landedCost').textContent = formatCurrency(data.total_landed_cost || 0);
+
+                setTimeout(() => { cards.forEach(card => card.classList.remove('stat-updating')); }, 500);
+            } catch (error) {}
+        }
+
+        async function loadFilters() {
+            try {
+                const branch = document.getElementById('branch').value;
+                const response = await fetch(`${API_URL}/api/filter-options/${currentTab}?branch=${encodeURIComponent(branch)}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                const currentBranch = document.getElementById('branch').value;
+                document.getElementById('branch').innerHTML = '<option>All</option>' +
+                    data.branches.filter(b => b !== 'All').map(b => `<option>${b}</option>`).join('');
+                document.getElementById('branch').value = currentBranch;
+
+                document.getElementById('status').innerHTML = '<option>All</option>' +
+                    data.ro_statuses.filter(s => s !== 'All').map(s => `<option>${s}</option>`).join('');
+
+                let ageBucketsFiltered = data.age_buckets.filter(a => a !== 'All');
+                let sortedAgeBuckets = sortAgeBuckets(ageBucketsFiltered);
+                document.getElementById('age').innerHTML = '<option>All</option>' +
+                    sortedAgeBuckets.map(a => `<option>${a}</option>`).join('');
+
+                if (data.segments) {
+                    const segmentHTML = data.segments.map(s => `<option value="${s}">${s}</option>`).join('');
+                    document.getElementById('segment').innerHTML = segmentHTML;
+                }
+
+                if (data.sa_names) {
+                    const saNameHTML = '<option>All</option>' +
+                        data.sa_names.filter(s => s !== 'All').map(s => `<option>${s}</option>`).join('');
+                    document.getElementById('saName').innerHTML = saNameHTML;
+                }
+
+                // Add Pending Reason filter (only for mechanical)
+                const pendingReasonFilter = document.getElementById('pendingReasonFilter');
+                if (currentTab === 'mechanical') {
+                    pendingReasonFilter.style.display = 'block';
+                    const pendingReasonOptions = data.pending_reasons || ['All'];
+                    document.getElementById('pendingReason').innerHTML = pendingReasonOptions.map(pr => `<option value="${pr}">${pr}</option>`).join('');
+                } else {
+                    pendingReasonFilter.style.display = 'none';
+                }
+
+                // Add RO Remarks filter
+                const roRemarkFilter = document.getElementById('roRemarkFilter');
+                if (currentTab === 'mechanical' || currentTab === 'bodyshop' || currentTab === 'accessories' || currentTab === 'presale') {
+                    roRemarkFilter.style.display = 'block';
+                    const roRemarkOptions = data.ro_remarks || ['All'];
+                    document.getElementById('roRemark').innerHTML = roRemarkOptions.map(rr => `<option value="${rr}">${rr}</option>`).join('');
+                } else {
+                    roRemarkFilter.style.display = 'none';
+                }
+
+                const billableTypeFilter = document.getElementById('billableTypeFilter');
+                if (currentTab === 'mechanical' || currentTab === 'bodyshop' || currentTab === 'accessories' || currentTab === 'presale') {
+                    billableTypeFilter.style.display = 'block';
+                    const billableTypeOptions = data.billable_types || ['All'];
+                    document.getElementById('billableType').innerHTML = billableTypeOptions.map(bt => `<option value="${bt}">${bt}</option>`).join('');
+                } else billableTypeFilter.style.display = 'none';
+
+                const serviceTypeFilter = document.getElementById('serviceTypeFilter');
+                if (currentTab === 'mechanical') {
+                    serviceTypeFilter.style.display = 'block';
+                    const serviceTypeOptions = data.service_types || ['All'];
+                    document.getElementById('serviceType').innerHTML = serviceTypeOptions.map(st => `<option value="${st}">${st}</option>`).join('');
+                } else serviceTypeFilter.style.display = 'none';
+
+                const mjobFilter = document.getElementById('mjobFilter');
+                const regNumberFilter = document.getElementById('regNumberFilter');
+
+                if (currentTab === 'mechanical' || currentTab === 'bodyshop') regNumberFilter.style.display = 'block';
+                else regNumberFilter.style.display = 'none';
+
+                if (currentTab === 'bodyshop') {
+                    mjobFilter.style.display = 'block';
+                    const mjobOptions = ['All', 'M1', 'M2', 'M3', 'M4', 'Not Categorized'];
+                    document.getElementById('mjob').innerHTML = mjobOptions.map(m => `<option value="${m}">${m}</option>`).join('');
+                } else mjobFilter.style.display = 'none';
+
+                loadData();
+                loadFilteredStats();
+            } catch (error) {
+                document.getElementById('tableInfo').innerHTML = `<div class="error">Error loading filters: ${error.message}</div>`;
+            }
+        }
+
+        function onBranchChange() {
+            document.getElementById('segment').value = 'All';
+            document.getElementById('saName').value = 'All';
+            loadFilters();
+        }
+
+        async function onSegmentChange() {
+            const segment = document.getElementById('segment').value;
+            const branch = document.getElementById('branch').value;
+
+            try {
+                if (segment && segment !== 'All') await updateBranchesForSegment(segment);
+                else loadFilters();
+            } catch (error) {}
+
+            try { await updateSANamesDirectly(branch, segment); } catch (error) {}
+            onFilterChange();
+        }
+
+        async function updateSANamesDirectly(branch, segment) {
+            const currentBranch = branch || document.getElementById('branch').value;
+            const currentSegment = segment || document.getElementById('segment').value;
+
+            let apiUrl = `${API_URL}/api/vehicles/${currentTab}?skip=0&limit=10000`;
+            if (currentBranch && currentBranch !== 'All') apiUrl += `&branch=${encodeURIComponent(currentBranch)}`;
+            if (currentSegment && currentSegment !== 'All') apiUrl += `&segment=${encodeURIComponent(currentSegment)}`;
+
+            const response = await fetch(apiUrl);
+            if (!response.ok) return;
+            const vehicles = await response.json();
+
+            const saSet = new Set();
+            saSet.add('All');
+            vehicles.forEach(v => {
+                if (v.service_adviser) {
+                    const sa = String(v.service_adviser).trim();
+                    if (sa) saSet.add(sa);
+                }
+            });
+
+            const saList = Array.from(saSet).sort();
+            const saDropdown = document.getElementById('saName');
+            if (!saDropdown) return;
+
+            saDropdown.innerHTML = '';
+            saList.forEach(sa => {
+                const option = document.createElement('option');
+                option.value = sa;
+                option.textContent = sa;
+                saDropdown.appendChild(option);
+            });
+            saDropdown.value = 'All';
+        }
+
+        async function updateBranchesForSegment(segment) {
+            const response = await fetch(`${API_URL}/api/vehicles/${currentTab}?segment=${encodeURIComponent(segment)}&skip=0&limit=10000`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const branches = new Set(['All']);
+            data.forEach(v => { if (v.branch && String(v.branch).trim()) branches.add(v.branch); });
+
+            const branchSelect = document.getElementById('branch');
+            const sortedBranches = Array.from(branches).sort();
+            branchSelect.innerHTML = sortedBranches.map(b => `<option>${b}</option>`).join('');
+        }
+
+        function onFilterChange() {
+            loadFilteredStats();
+            loadData();
+        }
+
+        function clearAllFilters() {
+            document.getElementById('branch').value = 'All';
+            document.getElementById('status').value = 'All';
+            document.getElementById('age').value = 'All';
+            document.getElementById('segment').value = 'All';
+            if (document.getElementById('billableType')) document.getElementById('billableType').value = 'All';
+            if (document.getElementById('serviceType')) document.getElementById('serviceType').value = 'All';
+            if (document.getElementById('saName')) document.getElementById('saName').value = 'All';
+            if (document.getElementById('roRemark')) document.getElementById('roRemark').value = 'All';
+            if (document.getElementById('pendingReason')) document.getElementById('pendingReason').value = 'All';
+            if (currentTab === 'bodyshop') {
+                document.getElementById('mjob').value = 'All';
+                document.getElementById('billableType').value = 'All';
+            }
+            if (document.getElementById('regNumber')) document.getElementById('regNumber').value = '';
+
+            loadStats();
+            loadData();
+        }
+
+        function isClosedButNotBilled() {
+            return document.getElementById('status').value === 'Closed but not billed';
+        }
+
+        function buildSortParams() {
+            if (!sortState.key || !sortState.dir) return '';
+            return `&sort_by=${encodeURIComponent(sortState.key)}&sort_dir=${encodeURIComponent(sortState.dir)}`;
+        }
+
+        function applyLocalSortIfNeeded(vehicles) {
+            if (!sortState.key || !sortState.dir) return vehicles;
+
+            const dirMul = (sortState.dir === 'asc') ? 1 : -1;
+            const key = sortState.key;
+
+            const copy = vehicles.slice();
+            copy.sort((a, b) => {
+                if (key === 'landed_cost') {
+                    const av = toNumber(a.total_landed_cost || 0);
+                    const bv = toNumber(b.total_landed_cost || 0);
+                    return (av - bv) * dirMul;
+                }
+                if (key === 'ro_date') {
+                    const ad = parseAnyDate(a.ro_date);
+                    const bd = parseAnyDate(b.ro_date);
+                    const at = ad ? ad.getTime() : 0;
+                    const bt = bd ? bd.getTime() : 0;
+                    return (at - bt) * dirMul;
+                }
+                return 0;
+            });
+            return copy;
+        }
+
+        async function loadData() {
+            try {
+                const branch = document.getElementById('branch').value;
+                const status = document.getElementById('status').value;
+                const age = document.getElementById('age').value;
+                const segment = document.getElementById('segment').value;
+                const billableType = document.getElementById('billableType') ? document.getElementById('billableType').value : 'All';
+                const serviceType = document.getElementById('serviceType') ? document.getElementById('serviceType').value : 'All';
+                const saName = document.getElementById('saName') ? document.getElementById('saName').value : 'All';
+                const roRemark = document.getElementById('roRemark') ? document.getElementById('roRemark').value : 'All';
+                const pendingReason = document.getElementById('pendingReason') ? document.getElementById('pendingReason').value : 'All';
+                const recordsPerPage = parseInt(document.getElementById('recordsPerPage').value, 10);
+
+                let url = `${API_URL}/api/vehicles/${currentTab}?skip=0&limit=${recordsPerPage}`;
+                if (branch !== 'All') url += `&branch=${encodeURIComponent(branch)}`;
+                if (status !== 'All') url += `&ro_status=${encodeURIComponent(status)}`;
+                if (age !== 'All') url += `&age_bucket=${encodeURIComponent(age)}`;
+                if (segment !== 'All') url += `&segment=${encodeURIComponent(segment)}`;
+                if (billableType !== 'All' && billableType !== undefined) url += `&billable_type=${encodeURIComponent(billableType)}`;
+                if (serviceType !== 'All' && serviceType !== undefined && currentTab === 'mechanical') url += `&service_type=${encodeURIComponent(serviceType)}`;
+                if (saName !== 'All') url += `&sa_name=${encodeURIComponent(saName)}`;
+                if (roRemark !== 'All') url += `&ro_remark=${encodeURIComponent(roRemark)}`;
+                if (pendingReason !== 'All' && currentTab === 'mechanical') url += `&pending_reason=${encodeURIComponent(pendingReason)}`;
+
+                const regNumber = document.getElementById('regNumber').value;
+                if (regNumber && regNumber.trim() !== '') url += `&reg_number=${encodeURIComponent(regNumber)}`;
+
+                if (currentTab === 'bodyshop') {
+                    const mjob = document.getElementById('mjob').value;
+                    if (mjob !== 'All') url += `&mjob=${encodeURIComponent(mjob)}`;
+                    if (billableType !== 'All') url += `&billable_type=${encodeURIComponent(billableType)}`;
+                }
+
+                url += buildSortParams();
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                if (data.error) {
+                    document.getElementById('tableInfo').innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                const vehiclesSorted = applyLocalSortIfNeeded(data.vehicles || []);
+                allData = vehiclesSorted;
+
+                document.getElementById('tableInfo').textContent =
+                    `Showing ${vehiclesSorted.length} of ${data.filtered_count} vehicles (Total: ${data.total_count})`;
+
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '';
+
+                if (vehiclesSorted.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="16" class="loading">No data found</td></tr>`;
+                    return;
+                }
+
+                const showClosedButNotBilledColumns = isClosedButNotBilled();
+
+                vehiclesSorted.forEach(v => {
+                    const statusClass = v.ro_status === 'Open' ? 'badge-open' : 'badge-closed';
+                    const branchAbbr = abbreviateBranch(v.branch);
+                    const landedCostDisplay = formatCurrency(v.total_landed_cost || 0);
+                    const roDateDisplay = formatDateDDMMYYYY(v.ro_date);
+
+                    if (currentTab === 'bodyshop') {
+                        const mjob = extractMJob(v.ro_remarks);
+                        const chassis = getLastEightChars(v.vin || '-');
+                        const tat = calculateTAT(v.ro_date);
+                        const tatStyle = getTATStyle(mjob, tat);
+                        const saNameDisp = v.service_adviser || '-';
+
+                        let rowHTML = `
+                            <tr>
+                                <td><strong>${v.ro_id}</strong></td>
+                                <td class="landed-cost-cell">${landedCostDisplay}</td>
+                                <td>${roDateDisplay}</td>`;
+
+                        if (showClosedButNotBilledColumns) {
+                            const vehicleReadyDateDisp = formatDateDDMMYYYY(v.vehicle_ready_date);
+                            const tatCurrent = calculateTAT(v.vehicle_ready_date);
+                            rowHTML += `
+                                <td class="vehicle-ready-date-cell">${vehicleReadyDateDisp}</td>
+                                <td class="tat-current-cell">${tatCurrent} days</td>`;
+                        }
+
+                        rowHTML += `
+                                <td><span class="branch-abbr">${branchAbbr}</span></td>
+                                <td><span class="badge ${statusClass}">${v.ro_status}</span></td>
+                                <td>${saNameDisp}</td>
+                                <td><strong>${v.reg_number || '-'}</strong></td>
+                                <td>${v.model_group || '-'}</td>
+                                <td>${v.segment || 'Unknown'}</td>
+                                <td>${chassis}</td>
+                                <td><span class="mjob-badge">${mjob}</span></td>
+                                <td><span class="${tatStyle}">${tat} days</span></td>
+                                <td style="font-size:11px; white-space: normal;">${v.ro_remarks || '-'}</td>
+                                <td style="font-size:11px; white-space: normal;">${v.pendncy_resn_desc || '-'}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += rowHTML;
+                    } else {
+                        let rowHTML = `
+                            <tr>
+                                <td><strong>${v.ro_id}</strong></td>
+                                <td class="landed-cost-cell">${landedCostDisplay}</td>
+                                <td>${roDateDisplay}</td>`;
+
+                        if (showClosedButNotBilledColumns) {
+                            const vehicleReadyDateDisp = formatDateDDMMYYYY(v.vehicle_ready_date);
+                            const tatCurrent = calculateTAT(v.vehicle_ready_date);
+                            rowHTML += `
+                                <td class="vehicle-ready-date-cell">${vehicleReadyDateDisp}</td>
+                                <td class="tat-current-cell">${tatCurrent} days</td>`;
+                        }
+
+                        rowHTML += `
+                                <td><span class="branch-abbr">${branchAbbr}</span></td>
+                                <td><span class="badge ${statusClass}">${v.ro_status}</span></td>
+                                <td>${v.service_adviser || '-'}</td>
+                                <td><strong>${v.reg_number || '-'}</strong></td>
+                                <td>${v.model_group || '-'}</td>`;
+
+                        if (currentTab === 'mechanical') {
+                            rowHTML += `<td>${v.service_type || '-'}</td>`;
+                        }
+
+                        rowHTML += `
+                                <td>${v.age_bucket || '-'}</td>
+                                <td>${v.days || '-'}</td>
+                                <td>${(v.km !== undefined && v.km !== null && !isNaN(Number(v.km))) ? Number(v.km).toLocaleString() : '-'}</td>
+                                <td style="font-size:11px; white-space: normal;">${v.ro_remarks ? v.ro_remarks : '-'}</td>
+                                <td style="font-size:11px; white-space: normal;">${v.pendncy_resn_desc || '-'}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += rowHTML;
+                    }
+                });
+
+                updateTableHeaders();
+                updateSortIcons();
+            } catch (error) {
+                document.getElementById('tableInfo').innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+            }
+        }
+
+        function updateTableHeaders() {
+            const headerRow = document.getElementById('headerRow');
+            headerRow.innerHTML = '';
+
+            const showClosedButNotBilledColumns = isClosedButNotBilled();
+
+            if (currentTab === 'bodyshop') {
+                let headers = `
+                    <th title="Repair Order Number">RO Number</th>
+                    <th class="sortable" onclick="toggleSort('landed_cost')" title="Sort Landed Cost">Landed Cost<span class="sort-indicator" id="sort_landed_cost"></span></th>
+                    <th class="sortable" onclick="toggleSort('ro_date')" title="Sort RO Date">RO Date<span class="sort-indicator" id="sort_ro_date"></span></th>`;
+
+                if (showClosedButNotBilledColumns) {
+                    headers += `
+                    <th title="Vehicle Ready Date">Vehicle Ready</th>
+                    <th title="Turn Around Time in Days (from Vehicle Ready Date to Current Date)">TAT Days</th>`;
+                }
+
+                headers += `
+                    <th title="Branch Location">Branch</th>
+                    <th title="RO Status">Status</th>
+                    <th title="Service Adviser Name">SA Name</th>
+                    <th title="Vehicle Registration Number">Vehicle No</th>
+                    <th title="Model Group">Model Group</th>
+                    <th title="Segment">Segment</th>
+                    <th title="Last 8 Digits of Chassis Number">Chassis</th>
+                    <th title="MJob Category">MJob</th>
+                    <th title="Turn Around Time in Days">TAT</th>
+                    <th title="RO Remarks">Remarks</th>
+                    <th title="Pending Reason Description">Pending Reason</th>
+                `;
+                headerRow.innerHTML = headers;
+            } else {
+                let headers = `
+                    <th title="Repair Order ID">RO ID</th>
+                    <th class="sortable" onclick="toggleSort('landed_cost')" title="Sort Landed Cost">Landed Cost<span class="sort-indicator" id="sort_landed_cost"></span></th>
+                    <th class="sortable" onclick="toggleSort('ro_date')" title="Sort RO Date">RO Date<span class="sort-indicator" id="sort_ro_date"></span></th>`;
+
+                if (showClosedButNotBilledColumns) {
+                    headers += `
+                    <th title="Vehicle Ready Date">Vehicle Ready</th>
+                    <th title="Turn Around Time in Days (from Vehicle Ready Date to Current Date)">TAT Days</th>`;
+                }
+
+                headers += `
+                    <th title="Branch Location">Branch</th>
+                    <th title="RO Status">Status</th>
+                    <th title="Service Adviser Name">SA Name</th>
+                    <th title="Vehicle Registration Number">Reg Number</th>
+                    <th title="Model Group">Model Group</th>`;
+
+                if (currentTab === 'mechanical') {
+                    headers += `<th title="Service Type">Service Type</th>`;
+                }
+
+                headers += `
+                    <th title="Age Bucket">Age</th>
+                    <th title="Number of Days">Days</th>
+                    <th title="Kilometers">KM</th>
+                    <th title="RO Remarks">Remarks</th>
+                    <th title="Pending Reason Description">Pending Reason</th>
+                `;
+                headerRow.innerHTML = headers;
+            }
+        }
+
+        function switchTab(event, tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            loadFilters();
+            openModal();
+        }
+
+        async function exportToCSV(evt) {
+            try {
+                const branch = document.getElementById('branch').value;
+                const status = document.getElementById('status').value;
+                const age = document.getElementById('age').value;
+                const segment = document.getElementById('segment').value;
+                const billableType = document.getElementById('billableType') ? document.getElementById('billableType').value : 'All';
+                const serviceType = document.getElementById('serviceType') ? document.getElementById('serviceType').value : 'All';
+                const saName = document.getElementById('saName') ? document.getElementById('saName').value : 'All';
+                const roRemark = document.getElementById('roRemark') ? document.getElementById('roRemark').value : 'All';
+                const pendingReason = document.getElementById('pendingReason') ? document.getElementById('pendingReason').value : 'All';
+
+                const btn = evt.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Preparing export...';
+                btn.disabled = true;
+
+                let url = `${API_URL}/api/export/${currentTab}`;
+                if (branch !== 'All') url += `?branch=${encodeURIComponent(branch)}`;
+                let separator = (branch !== 'All') ? '&' : '?';
+                if (status !== 'All') url += `${separator}ro_status=${encodeURIComponent(status)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (age !== 'All') url += `${separator}age_bucket=${encodeURIComponent(age)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (segment !== 'All') url += `${separator}segment=${encodeURIComponent(segment)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (billableType !== 'All' && billableType !== undefined) url += `${separator}billable_type=${encodeURIComponent(billableType)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (serviceType !== 'All' && serviceType !== undefined && currentTab === 'mechanical') url += `${separator}service_type=${encodeURIComponent(serviceType)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (saName !== 'All') url += `${separator}sa_name=${encodeURIComponent(saName)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (roRemark !== 'All') url += `${separator}ro_remark=${encodeURIComponent(roRemark)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (pendingReason !== 'All' && currentTab === 'mechanical') url += `${separator}pending_reason=${encodeURIComponent(pendingReason)}`;
+
+                const regNumber = document.getElementById('regNumber').value;
+                if (regNumber && regNumber.trim() !== '') {
+                    separator = (url.includes('?')) ? '&' : '?';
+                    url += `${separator}reg_number=${encodeURIComponent(regNumber)}`;
+                }
+
+                if (currentTab === 'bodyshop') {
+                    const mjob = document.getElementById('mjob').value;
+                    separator = (url.includes('?')) ? '&' : '?';
+                    if (mjob !== 'All') url += `${separator}mjob=${encodeURIComponent(mjob)}`;
+                    separator = (url.includes('?')) ? '&' : '?';
+                    if (billableType !== 'All') url += `${separator}billable_type=${encodeURIComponent(billableType)}`;
+                }
+
+                url += (url.includes('?') ? '&' : '?') + buildSortParams().replace(/^&/, '');
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                let exportData = data.vehicles;
+                if (!exportData || exportData.length === 0) {
+                    alert('No data to export!');
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                exportData = applyLocalSortIfNeeded(exportData);
+
+                const isClosedNB = status === 'Closed but not billed';
+                if (isClosedNB) {
+                    exportData = exportData.map(row => {
+                        const tatDays = calculateTAT(row.vehicle_ready_date);
+                        return { ...row, tat_days_from_vehicle_ready: tatDays };
+                    });
+                }
+
+                exportData = exportData.map(row => {
+                    return {
+                        ...row,
+                        ro_date: formatDateDDMMYYYY(row.ro_date),
+                        vehicle_ready_date: formatDateDDMMYYYY(row.vehicle_ready_date)
+                    };
+                });
+
+                const headers = Object.keys(exportData[0]);
+                let csv = [];
+                csv.push(headers.join(','));
+
+                exportData.forEach(row => {
+                    let csvRow = headers.map(col => {
+                        let value = (row[col] === undefined || row[col] === null) ? '-' : row[col];
+                        if (col === 'total_landed_cost' && value !== '-') {
+                            const num = parseFloat(value);
+                            value = isNaN(num) ? value : num.toFixed(2);
+                        }
+                        value = String(value).replace(/\"/g, '\"\"');
+                        return `"${value}"`;
+                    });
+                    csv.push(csvRow.join(','));
+                });
+
+                const csvContent = csv.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url_obj = URL.createObjectURL(blob);
+                const fileName = `RO_Dashboard_${currentTab}_${new Date().toISOString().split('T')[0]}.csv`;
+
+                link.href = url_obj;
+                link.download = fileName;
+                link.click();
+                URL.revokeObjectURL(url_obj);
+
+                btn.textContent = 'Exported';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }, 1200);
+            } catch (error) {
+                alert('Error exporting data: ' + error.message);
+                const btn = evt.target;
+                btn.textContent = 'Export Filtered Data to Excel';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
