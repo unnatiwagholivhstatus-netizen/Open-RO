@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: unnati-motors-ro-dashboard
+    env: python
+    plan: free
+    
+    # Build configuration
+    buildCommand: pip install -r requirements.txt
+    
+    # Start command
+    startCommand: python main.py
+    
+    # Environment variables
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: RENDER
+        value: "true"
+    
+    # Root directory where main.py is located
+    rootDir: ./
+    
+    # Health check
+    healthCheckPath: /health
+    healthCheckStartupTimeout: 30
+    
+    # Auto-deploy on push to main branch
+    autoDeploy: true
+    
+    # Build cache
+    headers:
+      - path: "/**"
+        name: "Cache-Control"
+        value: "max-age=3600"
+
+# Supported Python versions on Render
+# If using Python 3.11, add to root directory:
+# runtime.txt with content: python-3.11.7
