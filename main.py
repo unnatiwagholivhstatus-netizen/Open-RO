@@ -5,6 +5,7 @@ from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List, Dict, Any
+from datetime import datetime
 
 # ==================== CONFIGURATION ====================
 
@@ -258,6 +259,31 @@ load_data()
 
 # ==================== HELPER FUNCTIONS ====================
 
+def parse_date(date_str):
+    """Parse date string in various formats (YYYY-MM-DD, DD/MM/YYYY, etc.)"""
+    if not date_str or pd.isna(date_str):
+        return None
+    
+    date_str = str(date_str).strip()
+    
+    # Try ISO format
+    try:
+        return pd.to_datetime(date_str, format='%Y-%m-%d')
+    except:
+        pass
+    
+    # Try DD/MM/YYYY format
+    try:
+        return pd.to_datetime(date_str, format='%d/%m/%Y')
+    except:
+        pass
+    
+    # Try generic parser
+    try:
+        return pd.to_datetime(date_str)
+    except:
+        return None
+
 def extract_mjobs(remark):
     """Extract MJob codes from remarks"""
     if pd.isna(remark) or remark == '-' or remark == '':
@@ -314,7 +340,7 @@ def convert_row(row) -> Dict[str, Any]:
         print(f"Error converting row: {str(e)}")
         raise
 
-def apply_filters(df, branch, ro_status, age_bucket, mjob=None, billable_type=None, reg_number=None, service_type=None, sa_name=None, segment=None, ro_remark=None, pending_reason=None):
+def apply_filters(df, branch, ro_status, age_bucket, mjob=None, billable_type=None, reg_number=None, service_type=None, sa_name=None, segment=None, ro_remark=None, pending_reason=None, from_date=None, to_date=None):
     """Apply filters to dataframe"""
     result = df.copy()
     
@@ -344,6 +370,17 @@ def apply_filters(df, branch, ro_status, age_bucket, mjob=None, billable_type=No
     
     if pending_reason and pending_reason != "All":
         result = result[result['PENDNCY_RESN_DESC'] == pending_reason]
+    
+    # Date range filtering
+    if from_date:
+        from_date_parsed = parse_date(from_date)
+        if from_date_parsed:
+            result = result[pd.to_datetime(result['RO Date'], errors='coerce') >= from_date_parsed]
+    
+    if to_date:
+        to_date_parsed = parse_date(to_date)
+        if to_date_parsed:
+            result = result[pd.to_datetime(result['RO Date'], errors='coerce') <= to_date_parsed]
     
     if mjob and mjob != "All":
         if mjob == "Not Categorized":
@@ -527,7 +564,9 @@ async def filtered_statistics(
     sa_name: Optional[str] = Query("All"),
     segment: Optional[str] = Query("All"),
     ro_remark: Optional[str] = Query("All"),
-    pending_reason: Optional[str] = Query("All")
+    pending_reason: Optional[str] = Query("All"),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query("")
 ):
     """Dashboard statistics - with dynamic filtering by service category"""
     try:
@@ -574,6 +613,17 @@ async def filtered_statistics(
         
         if pending_reason and pending_reason != "All":
             filtered_df = filtered_df[filtered_df['PENDNCY_RESN_DESC'] == pending_reason]
+        
+        # Date range filtering
+        if from_date:
+            from_date_parsed = parse_date(from_date)
+            if from_date_parsed:
+                filtered_df = filtered_df[pd.to_datetime(filtered_df['RO Date'], errors='coerce') >= from_date_parsed]
+        
+        if to_date:
+            to_date_parsed = parse_date(to_date)
+            if to_date_parsed:
+                filtered_df = filtered_df[pd.to_datetime(filtered_df['RO Date'], errors='coerce') <= to_date_parsed]
         
         if mjob and mjob != "All":
             if mjob == "Not Categorized":
@@ -830,17 +880,19 @@ async def get_mechanical(
     ro_remark: Optional[str] = Query("All"),
     pending_reason: Optional[str] = Query("All"),
     reg_number: Optional[str] = Query(""),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query(""),
     skip: int = Query(0),
     limit: int = Query(50)
 ):
-    """Get mechanical vehicles with SA Name, Segment, RO Remark, Pending Reason and Reg. Number filtering"""
+    """Get mechanical vehicles with date range filtering"""
     try:
         if df_global.empty:
             return {"total_count": 0, "filtered_count": 0, "vehicles": []}
         
         df = df_global[df_global['SERVC_CATGRY_DESC'].isin(['Repair', 'Paid Service', 'Free Service'])].copy()
         total = len(df)
-        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, service_type=service_type, sa_name=sa_name, reg_number=reg_number, segment=segment, ro_remark=ro_remark, pending_reason=pending_reason)
+        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, service_type=service_type, sa_name=sa_name, reg_number=reg_number, segment=segment, ro_remark=ro_remark, pending_reason=pending_reason, from_date=from_date, to_date=to_date)
         filtered = len(df)
         df = df.iloc[skip:skip + limit]
         vehicles = [convert_row(row) for _, row in df.iterrows()]
@@ -861,17 +913,19 @@ async def get_bodyshop(
     segment: Optional[str] = Query("All"),
     ro_remark: Optional[str] = Query("All"),
     reg_number: Optional[str] = Query(""),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query(""),
     skip: int = Query(0),
     limit: int = Query(50)
 ):
-    """Get bodyshop vehicles with MJob, SA Name, Segment, RO Remark filtering, billable type filtering, and Reg Number search"""
+    """Get bodyshop vehicles with date range filtering"""
     try:
         if df_global.empty:
             return {"total_count": 0, "filtered_count": 0, "vehicles": []}
         
         df = df_global[df_global['SERVC_CATGRY_DESC'] == 'Bodyshop'].copy()
         total = len(df)
-        df = apply_filters(df, branch, ro_status, age_bucket, mjob, billable_type=billable_type, reg_number=reg_number, sa_name=sa_name, segment=segment, ro_remark=ro_remark)
+        df = apply_filters(df, branch, ro_status, age_bucket, mjob, billable_type=billable_type, reg_number=reg_number, sa_name=sa_name, segment=segment, ro_remark=ro_remark, from_date=from_date, to_date=to_date)
         filtered = len(df)
         df = df.iloc[skip:skip + limit]
         vehicles = [convert_row(row) for _, row in df.iterrows()]
@@ -890,17 +944,19 @@ async def get_accessories(
     sa_name: Optional[str] = Query("All"),
     segment: Optional[str] = Query("All"),
     ro_remark: Optional[str] = Query("All"),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query(""),
     skip: int = Query(0),
     limit: int = Query(50)
 ):
-    """Get accessories vehicles"""
+    """Get accessories vehicles with date range filtering"""
     try:
         if df_global.empty:
             return {"total_count": 0, "filtered_count": 0, "vehicles": []}
         
         df = df_global[df_global['SERVC_CATGRY_DESC'] == 'Accessories'].copy()
         total = len(df)
-        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, sa_name=sa_name, segment=segment, ro_remark=ro_remark)
+        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, sa_name=sa_name, segment=segment, ro_remark=ro_remark, from_date=from_date, to_date=to_date)
         filtered = len(df)
         df = df.iloc[skip:skip + limit]
         vehicles = [convert_row(row) for _, row in df.iterrows()]
@@ -919,17 +975,19 @@ async def get_presale(
     sa_name: Optional[str] = Query("All"),
     segment: Optional[str] = Query("All"),
     ro_remark: Optional[str] = Query("All"),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query(""),
     skip: int = Query(0),
     limit: int = Query(50)
 ):
-    """Get Pre-Sale/PDI vehicles"""
+    """Get Pre-Sale/PDI vehicles with date range filtering"""
     try:
         if df_global.empty:
             return {"total_count": 0, "filtered_count": 0, "vehicles": []}
         
         df = df_global[df_global['SERVC_CATGRY_DESC'] == 'Pre-Sale/PDI'].copy()
         total = len(df)
-        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, sa_name=sa_name, segment=segment, ro_remark=ro_remark)
+        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, sa_name=sa_name, segment=segment, ro_remark=ro_remark, from_date=from_date, to_date=to_date)
         filtered = len(df)
         df = df.iloc[skip:skip + limit]
         vehicles = [convert_row(row) for _, row in df.iterrows()]
@@ -950,14 +1008,16 @@ async def export_mech(
     segment: Optional[str] = Query("All"),
     ro_remark: Optional[str] = Query("All"),
     pending_reason: Optional[str] = Query("All"),
-    reg_number: Optional[str] = Query("")
+    reg_number: Optional[str] = Query(""),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query("")
 ):
     """Export mechanical vehicles"""
     try:
         if df_global.empty:
             return {"vehicles": []}
         df = df_global[df_global['SERVC_CATGRY_DESC'].isin(['Repair', 'Paid Service', 'Free Service'])]
-        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, service_type=service_type, sa_name=sa_name, reg_number=reg_number, segment=segment, ro_remark=ro_remark, pending_reason=pending_reason)
+        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, service_type=service_type, sa_name=sa_name, reg_number=reg_number, segment=segment, ro_remark=ro_remark, pending_reason=pending_reason, from_date=from_date, to_date=to_date)
         vehicles = [convert_row(row) for _, row in df.iterrows()]
         return {"vehicles": vehicles}
     except Exception as e:
@@ -974,14 +1034,16 @@ async def export_bs(
     sa_name: Optional[str] = Query("All"),
     segment: Optional[str] = Query("All"),
     ro_remark: Optional[str] = Query("All"),
-    reg_number: Optional[str] = Query("")
+    reg_number: Optional[str] = Query(""),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query("")
 ):
-    """Export bodyshop vehicles with MJob filtering, SA Name filtering, Segment filtering, RO Remark filtering, billable type filtering, and Reg Number search"""
+    """Export bodyshop vehicles with date range filtering"""
     try:
         if df_global.empty:
             return {"vehicles": []}
         df = df_global[df_global['SERVC_CATGRY_DESC'] == 'Bodyshop']
-        df = apply_filters(df, branch, ro_status, age_bucket, mjob, billable_type=billable_type, reg_number=reg_number, sa_name=sa_name, segment=segment, ro_remark=ro_remark)
+        df = apply_filters(df, branch, ro_status, age_bucket, mjob, billable_type=billable_type, reg_number=reg_number, sa_name=sa_name, segment=segment, ro_remark=ro_remark, from_date=from_date, to_date=to_date)
         vehicles = [convert_row(row) for _, row in df.iterrows()]
         return {"vehicles": vehicles}
     except Exception as e:
@@ -996,14 +1058,16 @@ async def export_acc(
     billable_type: Optional[str] = Query("All"),
     sa_name: Optional[str] = Query("All"),
     segment: Optional[str] = Query("All"),
-    ro_remark: Optional[str] = Query("All")
+    ro_remark: Optional[str] = Query("All"),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query("")
 ):
     """Export accessories vehicles"""
     try:
         if df_global.empty:
             return {"vehicles": []}
         df = df_global[df_global['SERVC_CATGRY_DESC'] == 'Accessories']
-        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, sa_name=sa_name, segment=segment, ro_remark=ro_remark)
+        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, sa_name=sa_name, segment=segment, ro_remark=ro_remark, from_date=from_date, to_date=to_date)
         vehicles = [convert_row(row) for _, row in df.iterrows()]
         return {"vehicles": vehicles}
     except Exception as e:
@@ -1018,14 +1082,16 @@ async def export_presale(
     billable_type: Optional[str] = Query("All"),
     sa_name: Optional[str] = Query("All"),
     segment: Optional[str] = Query("All"),
-    ro_remark: Optional[str] = Query("All")
+    ro_remark: Optional[str] = Query("All"),
+    from_date: Optional[str] = Query(""),
+    to_date: Optional[str] = Query("")
 ):
     """Export Pre-Sale/PDI vehicles"""
     try:
         if df_global.empty:
             return {"vehicles": []}
         df = df_global[df_global['SERVC_CATGRY_DESC'] == 'Pre-Sale/PDI']
-        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, sa_name=sa_name, segment=segment, ro_remark=ro_remark)
+        df = apply_filters(df, branch, ro_status, age_bucket, billable_type=billable_type, sa_name=sa_name, segment=segment, ro_remark=ro_remark, from_date=from_date, to_date=to_date)
         vehicles = [convert_row(row) for _, row in df.iterrows()]
         return {"vehicles": vehicles}
     except Exception as e:
