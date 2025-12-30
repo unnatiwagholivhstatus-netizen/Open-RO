@@ -155,7 +155,7 @@
             color: #333;
             margin-bottom: 6px;
         }
-        select, input[type="text"] {
+        select, input[type="text"], input[type="date"] {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
@@ -168,7 +168,7 @@
             .filters-section { padding: 12px; margin-bottom: 12px; }
             .filters-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
             .filter-group label { font-size: 11px; margin-bottom: 5px; }
-            select, input[type="text"] { padding: 6px; font-size: 12px; }
+            select, input[type="text"], input[type="date"] { padding: 6px; font-size: 12px; }
         }
 
         .table-section {
@@ -422,7 +422,8 @@
         }
         body.dark-mode .filter-group label { color: #e0e0e0; }
         body.dark-mode select,
-        body.dark-mode input[type="text"] {
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="date"] {
             background: #3a4575;
             color: #e0e0e0;
             border-color: #4a5585;
@@ -605,6 +606,14 @@
                         <option value="All">All</option>
                     </select>
                 </div>
+                <div class="filter-group" id="fromDateFilter">
+                    <label>From Date</label>
+                    <input type="date" id="fromDate" onchange="onFilterChange()">
+                </div>
+                <div class="filter-group" id="toDateFilter">
+                    <label>To Date</label>
+                    <input type="date" id="toDate" onchange="onFilterChange()">
+                </div>
                 <div class="filter-group" id="billableTypeFilter" style="display:none;">
                     <label>Billable Type</label>
                     <select id="billableType" onchange="onFilterChange()">
@@ -719,6 +728,7 @@
 
         let currentTab = 'mechanical';
         let allData = [];
+        let allRODates = [];  // Store all RO dates for date range calculation
 
         // Sorting state
         let sortState = { key: null, dir: null }; // dir: 'asc' | 'desc'
@@ -855,6 +865,15 @@
             const m = pad2(dt.getMonth() + 1);
             const y = dt.getFullYear();
             return `${d}/${m}/${y}`;
+        }
+
+        function formatDateISOForInput(input) {
+            const dt = parseAnyDate(input);
+            if (!dt) return '';
+            const y = dt.getFullYear();
+            const m = pad2(dt.getMonth() + 1);
+            const d = pad2(dt.getDate());
+            return `${y}-${m}-${d}`;
         }
 
         function calculateTAT(dateInput) {
@@ -1008,6 +1027,38 @@
             }
         }
 
+        function calculateDateRange() {
+            try {
+                if (allData.length === 0) return;
+                
+                const dates = allData
+                    .map(v => parseAnyDate(v.ro_date))
+                    .filter(d => d !== null);
+                
+                if (dates.length === 0) return;
+                
+                dates.sort((a, b) => a - b);
+                const minDate = dates[0];
+                const maxDate = dates[dates.length - 1];
+                
+                const fromDateInput = document.getElementById('fromDate');
+                const toDateInput = document.getElementById('toDate');
+                
+                // Set max attribute to today
+                const today = new Date();
+                const todayISO = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+                fromDateInput.setAttribute('max', todayISO);
+                toDateInput.setAttribute('max', todayISO);
+                
+                // Set min attribute to earliest RO date
+                const minISO = minDate.getFullYear() + '-' + pad2(minDate.getMonth() + 1) + '-' + pad2(minDate.getDate());
+                fromDateInput.setAttribute('min', minISO);
+                toDateInput.setAttribute('min', minISO);
+            } catch (error) {
+                console.log('Error calculating date range:', error);
+            }
+        }
+
         async function loadFilteredStats() {
             try {
                 const branch = document.getElementById('branch').value;
@@ -1021,6 +1072,8 @@
                 const pendingReason = document.getElementById('pendingReason') ? document.getElementById('pendingReason').value : 'All';
                 const mjob = currentTab === 'bodyshop' ? document.getElementById('mjob').value : 'All';
                 const regNumber = document.getElementById('regNumber') ? document.getElementById('regNumber').value : '';
+                const fromDate = document.getElementById('fromDate').value || '';
+                const toDate = document.getElementById('toDate').value || '';
 
                 let url = `${API_URL}/api/dashboard/statistics/filtered`;
                 const params = new URLSearchParams();
@@ -1037,6 +1090,8 @@
                 if (pendingReason !== 'All') params.append('pending_reason', pendingReason);
                 if (mjob !== 'All') params.append('mjob', mjob);
                 if (regNumber && regNumber.trim() !== '') params.append('reg_number', regNumber);
+                if (fromDate) params.append('from_date', fromDate);
+                if (toDate) params.append('to_date', toDate);
 
                 if (params.toString()) url += '?' + params.toString();
 
@@ -1219,6 +1274,8 @@
             document.getElementById('status').value = 'All';
             document.getElementById('age').value = 'All';
             document.getElementById('segment').value = 'All';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
             if (document.getElementById('billableType')) document.getElementById('billableType').value = 'All';
             if (document.getElementById('serviceType')) document.getElementById('serviceType').value = 'All';
             if (document.getElementById('saName')) document.getElementById('saName').value = 'All';
@@ -1280,6 +1337,8 @@
                 const roRemark = document.getElementById('roRemark') ? document.getElementById('roRemark').value : 'All';
                 const pendingReason = document.getElementById('pendingReason') ? document.getElementById('pendingReason').value : 'All';
                 const recordsPerPage = parseInt(document.getElementById('recordsPerPage').value, 10);
+                const fromDate = document.getElementById('fromDate').value || '';
+                const toDate = document.getElementById('toDate').value || '';
 
                 let url = `${API_URL}/api/vehicles/${currentTab}?skip=0&limit=${recordsPerPage}`;
                 if (branch !== 'All') url += `&branch=${encodeURIComponent(branch)}`;
@@ -1291,6 +1350,8 @@
                 if (saName !== 'All') url += `&sa_name=${encodeURIComponent(saName)}`;
                 if (roRemark !== 'All') url += `&ro_remark=${encodeURIComponent(roRemark)}`;
                 if (pendingReason !== 'All' && currentTab === 'mechanical') url += `&pending_reason=${encodeURIComponent(pendingReason)}`;
+                if (fromDate) url += `&from_date=${encodeURIComponent(fromDate)}`;
+                if (toDate) url += `&to_date=${encodeURIComponent(toDate)}`;
 
                 const regNumber = document.getElementById('regNumber').value;
                 if (regNumber && regNumber.trim() !== '') url += `&reg_number=${encodeURIComponent(regNumber)}`;
@@ -1312,8 +1373,10 @@
                     return;
                 }
 
-                const vehiclesSorted = applyLocalSortIfNeeded(data.vehicles || []);
-                allData = vehiclesSorted;
+                allData = data.vehicles || [];
+                calculateDateRange();  // Update date picker min/max
+                
+                const vehiclesSorted = applyLocalSortIfNeeded(allData);
 
                 document.getElementById('tableInfo').textContent =
                     `Showing ${vehiclesSorted.length} of ${data.filtered_count} vehicles (Total: ${data.total_count})`;
@@ -1501,6 +1564,8 @@
                 const saName = document.getElementById('saName') ? document.getElementById('saName').value : 'All';
                 const roRemark = document.getElementById('roRemark') ? document.getElementById('roRemark').value : 'All';
                 const pendingReason = document.getElementById('pendingReason') ? document.getElementById('pendingReason').value : 'All';
+                const fromDate = document.getElementById('fromDate').value || '';
+                const toDate = document.getElementById('toDate').value || '';
 
                 const btn = evt.target;
                 const originalText = btn.textContent;
@@ -1525,6 +1590,10 @@
                 if (roRemark !== 'All') url += `${separator}ro_remark=${encodeURIComponent(roRemark)}`;
                 separator = (url.includes('?')) ? '&' : '?';
                 if (pendingReason !== 'All' && currentTab === 'mechanical') url += `${separator}pending_reason=${encodeURIComponent(pendingReason)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (fromDate) url += `${separator}from_date=${encodeURIComponent(fromDate)}`;
+                separator = (url.includes('?')) ? '&' : '?';
+                if (toDate) url += `${separator}to_date=${encodeURIComponent(toDate)}`;
 
                 const regNumber = document.getElementById('regNumber').value;
                 if (regNumber && regNumber.trim() !== '') {
